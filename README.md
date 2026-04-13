@@ -27,19 +27,25 @@ Auto-restoration & Background working utilized by linux systemd
 # 🚜 Smart Farm Edge-to-Cloud Data Pipeline
 
 This repository demonstrates a complete edge-to-cloud IoT data pipeline designed for Agritech environments. It features a lightweight Golang-based mock sensor, containerized and deployed on a Kubernetes (K3s) cluster to simulate real-time agricultural data collection and monitoring.
-
 ## 🏗️ Architecture Overview
 
-The infrastructure is built with a focus on cloud-native principles, separating the edge computing node from the monitoring plane.
+The infrastructure is built with a focus on cloud-native principles, separating the edge computing node from the monitoring plane. It implements an Event-Driven, Closed-Loop automation system.
 
-- **Edge Node (`farm-node`)**: Generates and pushes simulated environmental data (temperature, humidity, soil moisture).
-- **Monitor Node (`monitor-node`)**: Hosts the time-series database and visualization dashboards.
+```mermaid
+graph TD
+    subgraph Edge Node [farm-node: 192.168.202.131]
+        Sensor[Golang Mock Sensor]
+        Actuator[Virtual Water Pump / Actuator]
+    end
 
-```text
-[Edge Environment]                           [Monitoring Plane]
-+---------------------+                      +------------------------+
-| Apps (Golang)       |                      | K3s Cluster            |
-| - Mock Sensor Pod   | ---- (HTTP API) ---> | - InfluxDB (Port 8086) |
-+---------------------+                      | - Grafana (Port 31165) |
-                                             | - Local Path Storage   |
-                                             +------------------------+
+    subgraph K3s Cluster [monitor-node: 192.168.202.132]
+        InfluxDB[(InfluxDB v2<br/>NodePort: 30086)]
+        Grafana[Grafana Dashboard<br/>NodePort: 31165]
+        ActionService{{Golang Action Service<br/>Webhook Receiver}}
+    end
+
+    Sensor -->|1. Push Sensor Data| InfluxDB
+    InfluxDB -->|2. Time-series Query| Grafana
+    Grafana -->|3. Alert Trigger Webhook<br/>e.g., Low Soil Moisture| ActionService
+    ActionService -->|4. Control Command<br/>Idempotent Action| Actuator
+    Actuator -->|5. State Update| Sensor
