@@ -23,3 +23,23 @@ Influx DB live data transfer including temperature, humidity & soil moisture
 Sprinkler operation in case of shortage on soil moisture
 ventilation operation in case of high temperature detected
 Auto-restoration & Background working utilized by linux systemd
+
+# 🚜 Smart Farm Edge-to-Cloud Data Pipeline
+
+This repository demonstrates a complete edge-to-cloud IoT data pipeline designed for Agritech environments. It features a lightweight Golang-based mock sensor, containerized and deployed on a Kubernetes (K3s) cluster to simulate real-time agricultural data collection and monitoring.
+
+## 🏗️ Architecture Overview
+
+The infrastructure is built with a focus on cloud-native principles, separating the edge computing node from the monitoring plane.
+
+- **Edge Node (`farm-node`)**: Generates and pushes simulated environmental data (temperature, humidity, soil moisture).
+- **Monitor Node (`monitor-node`)**: Hosts the time-series database and visualization dashboards.
+
+```text
+[Edge Environment]                           [Monitoring Plane]
++---------------------+                      +------------------------+
+| Apps (Golang)       |                      | K3s Cluster            |
+| - Mock Sensor Pod   | ---- (HTTP API) ---> | - InfluxDB (Port 8086) |
++---------------------+                      | - Grafana (Port 31165) |
+                                             | - Local Path Storage   |
+                                             +------------------------+
