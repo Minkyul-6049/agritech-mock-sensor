@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agritech-mock-sensor
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mock-sensor
+  template:
+    metadata:
+      labels:
+        app: mock-sensor
+    spec:
+      containers:
+      - name: sensor
+        # Dummy)
+        image: <YOUR_DOCKERHUB_ID>/agritech-mock-sensor:v1
+        imagePullPolicy: Always
