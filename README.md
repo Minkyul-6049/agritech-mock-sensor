@@ -49,3 +49,27 @@ graph TD
     Grafana -->|3. Alert Trigger Webhook<br/>e.g., Low Soil Moisture| ActionService
     ActionService -->|4. Control Command<br/>Idempotent Action| Actuator
     Actuator -->|5. State Update| Sensor
+
+
+
+graph TD
+    %% 노드 스타일링
+    classDef node fill:#f9f9f9,stroke:#333,stroke-width:2px;
+    classDef action fill:#ffe6e6,stroke:#ff6666,stroke-width:2px,stroke-dasharray: 5 5;
+
+    subgraph Farm-Node ["🌱 Farm-Node (192.168.202.131)"]
+        Sensors(["Temp&moisture (Sensors)"])
+        CoolingSystem[["Cooling system (Actuators)"]]:::action
+    end
+
+    subgraph Monitor-Node ["🖥️ Monitor-Node (192.168.202.132)"]
+        DB[("InfluxDB\n(Time Data)")]
+        Grafana["Grafana\n(visual & alert rule)"]
+        Webhook{"Go Webhook Server\n(Automatic API server)"}
+    end
+
+    %% Data Flow
+    Sensors -- "1. Env data transmission" --> DB
+    DB -- "2. live data quory" --> Grafana
+    Grafana -- "3. Trigger Webhook on threshold exceede (POST)" --> Webhook
+    Webhook -- "4.Call Cooling System execution API" --> CoolingSystem
