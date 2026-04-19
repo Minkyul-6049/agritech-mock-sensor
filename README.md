@@ -33,20 +33,24 @@ The infrastructure is built with a focus on cloud-native principles, separating 
 
 ```mermaid
 graph TD
-    subgraph Edge Node [farm-node: 192.168.202.131]
-        Sensor[Golang Mock Sensor]
-        Actuator[Virtual Water Pump / Actuator]
+    %% Node Styling
+    classDef node fill:#f9f9f9,stroke:#333,stroke-width:2px;
+    classDef action fill:#ffe6e6,stroke:#ff6666,stroke-width:2px,stroke-dasharray: 5 5;
+
+    subgraph Farm-Node ["🌱 Farm-Node (192.168.202.131)"]
+        Sensors(["Temp/Humidity Sensors"])
+        CoolingSystem[["Cooling System (Actuators)"]]:::action
     end
 
-    subgraph K3s Cluster [monitor-node: 192.168.202.132]
-        InfluxDB[(InfluxDB v2<br/>NodePort: 30086)]
-        Grafana[Grafana Dashboard<br/>NodePort: 31165]
-        ActionService{{Golang Action Service<br/>Webhook Receiver}}
+    subgraph Monitor-Node ["🖥️ Monitor-Node (192.168.202.132)"]
+        DB[("InfluxDB\n(Time-Series DB)")]
+        Grafana["Grafana\n(Visualization & Alerting)"]
+        Webhook{"Go Webhook Server\n(Auto-remediation API)"}
     end
 
-    Sensor -->|1. Push Sensor Data| InfluxDB
-    InfluxDB -->|2. Time-series Query| Grafana
-    Grafana -->|3. Alert Trigger Webhook<br/>e.g., Low Soil Moisture| ActionService
-    ActionService -->|4. Control Command<br/>Idempotent Action| Actuator
-    Actuator -->|5. State Update| Sensor
+    %% Data Flow
+    Sensors -- "1. Send environmental data" --> DB
+    DB -- "2. Query real-time data" --> Grafana
+    Grafana -- "3. Trigger Webhook on threshold exceeded (POST)" --> Webhook
+    Webhook -- "4. Call Cooling System execution API" --> CoolingSystem
 
