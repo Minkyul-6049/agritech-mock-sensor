@@ -21,6 +21,7 @@ The infrastructure is built with cloud-native principles, strictly separating th
     * **Node-RED:** Serves as the Human-Machine Interface (HMI) for real-time digital twin visualization and manual override controls (e.g., Force Cooling Actuation).
 
 ## 🔄 Data Pipeline Flow
+
 ```mermaid
 graph LR
     subgraph EdgeNode [Farm-Node: 192.168.202.131]
@@ -29,8 +30,8 @@ graph LR
         LocalLogic{Local Control Logic}
         Actuator[Sprinkler / Ventilation]
         
-        Sensor -->|Auto-Trigger| LocalLogic
-        LocalLogic -->|Local Actuation| Actuator
+        Sensor -->|Raw Data: Temp, Moisture| LocalLogic
+        LocalLogic -->|Hardware Trigger: Relay ON| Actuator
     end
 
     subgraph K3sCluster [Monitor-Node: 192.168.202.132]
@@ -40,11 +41,11 @@ graph LR
         NodeRED[Node-RED HMI]
         Webhook{{Golang Webhook Server}}
         
-        Prometheus -->|2. Query Metrics| Grafana
-        Prometheus -->|3. Query Metrics| NodeRED
-        Grafana -->|4. Trigger Alert| Webhook
+        Prometheus -->|2. PromQL: Aggregate Data| Grafana
+        Prometheus -->|3. PromQL: Live System State| NodeRED
+        Grafana -->|4. JSON Webhook: High Temp Alert| Webhook
     end
 
-    Sensor -->|1. HTTP Pull| Prometheus
-    Webhook -->|5. Format and Push| Telegram([Telegram App])
-    NodeRED -->|6. Manual Override| Actuator
+    Sensor -->|1. HTTP Scrape /metrics| Prometheus
+    Webhook -->|5. Telegram Bot API: Formatted Msg| Telegram([Telegram App])
+    NodeRED -->|6. Remote Override HTTP POST| Actuator
