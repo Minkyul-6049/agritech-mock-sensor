@@ -22,25 +22,29 @@ The infrastructure is built with cloud-native principles, strictly separating th
 
 ## 🔄 Data Pipeline Flow
 ```mermaid
-graph TD
+graph LR
     subgraph EdgeNode [Farm-Node: 192.168.202.131]
+        direction TB
         Sensor[Golang Sensor Daemon<br/>Generates data every 2s]
         LocalLogic{Local Control Logic}
         Actuator[Sprinkler / Ventilation]
+        
+        Sensor -->|Auto-Trigger| LocalLogic
+        LocalLogic -->|Local Actuation| Actuator
     end
 
     subgraph K3sCluster [Monitor-Node: 192.168.202.132]
+        direction TB
         Prometheus[Prometheus Server]
         Grafana[Grafana Dashboard]
-        Webhook{{Golang Webhook Server}}
         NodeRED[Node-RED HMI]
+        Webhook{{Golang Webhook Server}}
+        
+        Prometheus -->|2. Query Metrics| Grafana
+        Prometheus -->|3. Query Metrics| NodeRED
+        Grafana -->|4. Trigger Alert| Webhook
     end
 
-    Sensor -->|Auto-Trigger| LocalLogic
-    LocalLogic -->|Local Actuation| Actuator
     Sensor -->|1. HTTP Pull| Prometheus
-    Prometheus -->|2. Query Metrics| Grafana
-    Prometheus -->|3. Query Metrics| NodeRED
-    Grafana -->|4. Trigger Alert| Webhook
     Webhook -->|5. Format and Push| Telegram([Telegram App])
     NodeRED -->|6. Manual Override| Actuator
