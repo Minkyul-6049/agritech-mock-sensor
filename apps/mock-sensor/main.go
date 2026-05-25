@@ -2,7 +2,9 @@ package main
 
 import (
         "fmt"
+        "log"
         "math/rand"
+        "os"
         "time"
 
         influxdb2 "github.com/influxdata/influxdb-client-go/v2"
@@ -11,7 +13,13 @@ import (
 func main() {
         // 1. Connection config for the Control Tower (Monitor-Node)
         url := "http://192.168.202.132:30086"
-        token := "y7tYd8StwJpZ9yk9igkFVXUqH8h7-gyLCBof_E1UixFJA4tjqrRJeld9esXkgRhEKfPA8V8AdjOhgUIjQUw2IQ=="
+        
+        // Security Patch: Load InfluxDB token from environment variables
+        token := os.Getenv("INFLUX_TOKEN")
+        if token == "" {
+                log.Fatal("🚨 [Error] INFLUX_TOKEN must be set in the environment.")
+        }
+        
         org := "dutch-agritech"
         bucket := "smartfarm_sensors"
 
