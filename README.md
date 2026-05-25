@@ -1,51 +1,29 @@
-# 🚜 Smart Farm Edge-to-Cloud Data Pipeline & Control HMI
+# Agritech Edge Sensor Daemon & Action Service
 
-This repository demonstrates a production-grade, edge-to-cloud IoT data pipeline designed for Agritech environments. It features decoupled architecture, utilizing a lightweight edge node for sensor metrics and a centralized Kubernetes (K3s) cluster for data aggregation, monitoring, and real-time HMI control.
+A lightweight edge computing agent built with Go, acting as the nervous system for smart farm operations. It simulates environmental sensors, ensures local hardware autonomy, and interfaces seamlessly with centralized cloud monitoring.
 
-## 🏗️ Core Architecture (Decoupled System)
+## Key Features
 
-The infrastructure is built with cloud-native principles, strictly separating the edge computing node (Farm) from the centralized monitoring plane (Control Tower) to prevent Single Points of Failure (SPOF) and ensure high availability in unstable network environments.
+* **Edge Autonomy (SPOF Prevention):** Executes critical control logic (e.g., sprinklers, ventilation) locally, ensuring greenhouse safety even if the network to the control plane is disconnected.
+* **Telemetry Ingestion:** Continuously streams mock environmental metrics (Temperature, Humidity, Soil Moisture) to a centralized InfluxDB.
+* **Action Webhook Receiver:** Listens for Grafana alerts from the Monitor-Node to trigger physical actuators (e.g., Virtual Water Pump).
+* **Secure Credentials:** Utilizes environment variables to prevent hardcoded tokens in the source code.
 
-### 1. Edge Node (`farm-node`: 192.168.202.131)
-* **Role:** Responsible for local sensor data ingestion and hardware actuation.
-* **Component:** Golang Mock Sensor (Generates and exposes Temperature, Humidity, and Soil Moisture metrics).
-* **Design Choice:** Exposes metrics via an HTTP endpoint (`/metrics`) to allow the centralized server to scrape data (Pull Model), preventing overload on the edge device.
-
-### 2. Control Tower (`monitor-node`: 192.168.202.132)
-* **Role:** Centralized data aggregation, visualization, and custom alert routing.
-* **Infrastructure:** K3s (Lightweight Kubernetes) cluster for container orchestration and self-healing.
-* **Components:**
-    * **Prometheus:** Scrapes time-series data from the Edge Node.
-    * **Grafana (NodePort: 31165):** Visualizes metrics and triggers alerts.
-    * **Golang Webhook Server:** Custom backend service that receives Grafana alerts, formats them via Go Templates, and pushes notifications to **Telegram**.
-    * **Node-RED:** Serves as the Human-Machine Interface (HMI) for real-time digital twin visualization and manual override controls (e.g., Force Cooling Actuation).
-
-## 🔄 Data Pipeline Flow
+## Edge Architecture Flow
 
 ```mermaid
-graph LR
-    subgraph EdgeNode [Farm-Node: 192.168.202.131]
-        direction TB
-        Sensor[Golang Sensor Daemon<br/>Generates data every 2s]
-        LocalLogic{Local Control Logic}
-        Actuator[Sprinkler / Ventilation]
+graph TD
+    subgraph Farm-Node [Farm-Node / Edge Environment]
+        SD[Sensor Daemon] -->|Sensor Readings| LCL[Local Control Logic]
+        LCL -->|Instant Trigger| Actuators[Sprinkler / Ventilation]
         
-        Sensor -->|Raw Data: Temp, Moisture| LocalLogic
-        LocalLogic -->|Hardware Trigger: Relay ON| Actuator
+        AS[Action Service Webhook] -->|Grafana Alert| Pump[Water Pump Action]
     end
 
-    subgraph K3sCluster [Monitor-Node: 192.168.202.132]
-        direction TB
-        Prometheus[Prometheus Server]
-        Grafana[Grafana Dashboard]
-        NodeRED[Node-RED HMI]
-        Webhook{{Golang Webhook Server}}
-        
-        Prometheus -->|2. PromQL: Aggregate Data| Grafana
-        Prometheus -->|3. PromQL: Live System State| NodeRED
-        Grafana -->|4. JSON Webhook: High Temp Alert| Webhook
+    subgraph Monitor-Node [Monitor-Node / Control Plane]
+        SD -->|Push Telemetry| IDB[(InfluxDB)]
+        Grafana[Grafana Alerting] -->|HTTP POST| AS
     end
-
-    Sensor -->|1. HTTP Scrape /metrics| Prometheus
-    Webhook -->|5. Telegram Bot API: Formatted Msg| Telegram([Telegram App])
-    NodeRED -->|6. Remote Override HTTP POST| Actuator
+    
+    style Farm-Node fill:#e8f4f8,stroke:#333,stroke-width:2px
+    style Monitor-Node fill:#f9eaeb,stroke:#333,stroke-width:2px
